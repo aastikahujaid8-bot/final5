@@ -55,6 +55,7 @@ function App() {
       return <SignupPage onSwitchToLogin={() => setAuthMode('login')} />;
     }
   }
+  
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -93,8 +94,13 @@ function App() {
       {showVoiceGuide && (
         <VoiceGuide onClose={() => setShowVoiceGuide(false)} />
       )}
+      {/* Credit text in the bottom-right corner */}
+<div className="fixed bottom-2 right-2 text-[10px] text-gray-400 font-medium z-50 pointer-events-none">
+  made by aastik
+</div>
     </div>
   );
 }
 
 export default App;
+
