@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useAuth } from './contexts/AuthContext';
+import { LoginPage } from './components/Auth/LoginPage';
+import { SignupPage } from './components/Auth/SignupPage';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
 import { VulnerabilityLabs } from './components/VulnerabilityLabs';
@@ -11,6 +14,8 @@ import { ToolPage } from './components/ToolPage';
 import { VoiceGuide } from './components/VoiceGuide';
 
 function App() {
+  const { user, loading } = useAuth();
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('labs');
   const [selectedLab, setSelectedLab] = useState<string | null>(null);
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
@@ -31,6 +36,25 @@ function App() {
   const handleCloseToolPage = () => {
     setSelectedTool(null);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-500 via-teal-600 to-blue-600 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto"></div>
+          <p className="mt-4 text-white text-xl font-semibold">Loading CyberSec Academy...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    if (authMode === 'login') {
+      return <LoginPage onSwitchToSignup={() => setAuthMode('signup')} />;
+    } else {
+      return <SignupPage onSwitchToLogin={() => setAuthMode('login')} />;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">

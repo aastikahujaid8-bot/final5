@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, Circle, Lock, BookOpen } from 'lucide-react';
 import { ModuleContent } from './ModuleContent';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Module {
   name: string;
@@ -21,6 +22,7 @@ interface CompletedModules {
 }
 
 export function LearningPath({ onModuleStart }: LearningPathProps) {
+  const { user } = useAuth();
   const [activeModule, setActiveModule] = useState<{ name: string; level: string } | null>(null);
   const [completedModules, setCompletedModules] = useState<CompletedModules>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -164,8 +166,10 @@ export function LearningPath({ onModuleStart }: LearningPathProps) {
   };
 
   useEffect(() => {
-    loadCompletedModules();
-  }, []);
+    if (user) {
+      loadCompletedModules();
+    }
+  }, [user]);
 
   useEffect(() => {
     const beginnerModules = initialPaths[0].modules.map(m => m.name);
@@ -188,11 +192,13 @@ export function LearningPath({ onModuleStart }: LearningPathProps) {
   }, [completedModules]);
 
   const loadCompletedModules = async () => {
+    if (!user) return;
+
     try {
       const { data, error } = await supabase
-        .from('user_progress')
+        .from('modules_completed')
         .select('module_name')
-        .eq('user_id', 'default_user');
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -245,52 +251,64 @@ export function LearningPath({ onModuleStart }: LearningPathProps) {
   };
 
   const handleModuleComplete = async () => {
-    if (activeModule) {
-      const module = initialPaths
-        .flatMap(p => p.modules)
-        .find(m => m.name === activeModule.name);
+    if (!user || !activeModule) return;
 
-      if (module) {
-        try {
-          await supabase
-            .from('user_progress')
-            .insert({
-              user_id: 'default_user',
-              module_name: activeModule.name,
-              module_level: activeModule.level,
-              points: module.points,
-            });
+    const module = initialPaths
+      .flatMap(p => p.modules)
+      .find(m => m.name === activeModule.name);
 
-          const today = new Date().toISOString().split('T')[0];
-          const { data: existingActivity } = await supabase
-            .from('daily_activity')
-            .select('*')
-            .eq('user_id', 'default_user')
-            .eq('activity_date', today)
-            .maybeSingle();
-
-          if (existingActivity) {
-            await supabase
-              .from('daily_activity')
-              .update({ modules_completed: existingActivity.modules_completed + 1 })
-              .eq('id', existingActivity.id);
-          } else {
-            await supabase
-              .from('daily_activity')
-              .insert({
-                user_id: 'default_user',
-                activity_date: today,
-                modules_completed: 1,
-              });
-          }
-
-          setCompletedModules({
-            ...completedModules,
-            [activeModule.name]: true,
+    if (module) {
+      try {
+        await supabase
+          .from('modules_completed')
+          .insert({
+            user_id: user.id,
+            module_name: activeModule.name,
+            module_level: activeModule.level,
+            points_earned: module.points,
           });
-        } catch (error) {
-          console.error('Error saving progress:', error);
+
+        const today = new Date().toISOString().split('T')[0];
+        const { data: existingStreak } = await supabase
+          .from('daily_streaks')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('activity_date', today)
+          .maybeSingle();
+
+        if (existingStreak) {
+          await supabase
+            .from('daily_streaks')
+            .update({
+              modules_completed: existingStreak.modules_completed + 1,
+              points_earned: existingStreak.points_earned + module.points,
+            })
+            .eq('id', existingStreak.id);
+        } else {
+          await supabase
+            .from('daily_streaks')
+            .insert({
+              user_id: user.id,
+              activity_date: today,
+              modules_completed: 1,
+              labs_completed: 0,
+              points_earned: module.points,
+            });
         }
+
+        await supabase
+          .from('user_profiles')
+          .update({
+            total_points: (await supabase.from('user_profiles').select('total_points').eq('id', user.id).maybeSingle())?.data?.total_points + module.points || module.points,
+          })
+          .eq('id', user.id);
+
+        setCompletedModules({
+          ...completedModules,
+          [activeModule.name]: true,
+        });
+      } catch (error) {
+        console.error('Error saving progress:', error);
       }
     }
     setActiveModule(null);

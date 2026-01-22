@@ -1,50 +1,59 @@
 import { useState, useEffect } from 'react';
 import { Target, Zap, Award, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Dashboard() {
+  const { user, profile } = useAuth();
   const [totalPoints, setTotalPoints] = useState(0);
   const [labsCompleted, setLabsCompleted] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [skillLevel, setSkillLevel] = useState('Beginner');
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (profile) {
+      setTotalPoints(profile.total_points);
+      setCurrentStreak(profile.current_streak);
+      setSkillLevel(profile.skill_level);
+    }
+  }, [profile]);
 
   const loadDashboardData = async () => {
+    if (!user) return;
+
     try {
-      const { data: progressData, error } = await supabase
-        .from('user_progress')
+      const { data: labsData, error: labsError } = await supabase
+        .from('labs_completed')
         .select('*')
-        .eq('user_id', 'default_user');
+        .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (labsError) throw labsError;
 
-      if (progressData) {
-        const points = progressData.reduce((sum, item) => sum + item.points, 0);
-        setTotalPoints(points);
-        setLabsCompleted(progressData.length);
-
-        if (progressData.length === 0) {
-          setSkillLevel('Beginner');
-        } else if (progressData.length < 4) {
-          setSkillLevel('Beginner');
-        } else if (progressData.length < 8) {
-          setSkillLevel('Intermediate');
-        } else {
-          setSkillLevel('Advanced');
-        }
+      if (labsData) {
+        setLabsCompleted(labsData.length);
       }
 
-      const { data: activityData } = await supabase
-        .from('daily_activity')
+      const { data: modulesData, error: modulesError } = await supabase
+        .from('modules_completed')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (modulesError) throw modulesError;
+
+      const { data: streaksData } = await supabase
+        .from('daily_streaks')
         .select('activity_date')
-        .eq('user_id', 'default_user')
+        .eq('user_id', user.id)
         .order('activity_date', { ascending: false });
 
-      if (activityData && activityData.length > 0) {
-        const streak = calculateStreak(activityData.map(a => a.activity_date));
+      if (streaksData && streaksData.length > 0) {
+        const streak = calculateStreak(streaksData.map(a => a.activity_date));
         setCurrentStreak(streak);
       }
     } catch (error) {

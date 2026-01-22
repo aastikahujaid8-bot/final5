@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Trophy, Target, Zap, Award, Calendar, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Progress() {
+  const { user, profile } = useAuth();
   const [totalPoints, setTotalPoints] = useState(0);
   const [labsCompleted, setLabsCompleted] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
@@ -13,49 +15,60 @@ export function Progress() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadProgressData();
-  }, []);
+    if (user) {
+      loadProgressData();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (profile) {
+      setTotalPoints(profile.total_points);
+      setCurrentStreak(profile.current_streak);
+    }
+  }, [profile]);
 
   const loadProgressData = async () => {
+    if (!user) return;
+
     try {
-      const { data: progressData, error } = await supabase
-        .from('user_progress')
+      const { data: modulesData, error: modulesError } = await supabase
+        .from('modules_completed')
         .select('*')
-        .eq('user_id', 'default_user')
+        .eq('user_id', user.id)
         .order('completed_at', { ascending: false });
 
-      if (error) throw error;
+      if (modulesError) throw modulesError;
 
-      if (progressData) {
-        const points = progressData.reduce((sum, item) => sum + item.points, 0);
+      if (modulesData) {
+        const points = modulesData.reduce((sum, item) => sum + item.points_earned, 0);
         setTotalPoints(points);
-        setLabsCompleted(progressData.length);
+        setLabsCompleted(modulesData.length);
 
-        const beginnerCount = progressData.filter(p => p.module_level === 'Beginner').length;
-        const intermediateCount = progressData.filter(p => p.module_level === 'Intermediate').length;
-        const advancedCount = progressData.filter(p => p.module_level === 'Advanced').length;
+        const beginnerCount = modulesData.filter(p => p.module_level === 'Beginner').length;
+        const intermediateCount = modulesData.filter(p => p.module_level === 'Intermediate').length;
+        const advancedCount = modulesData.filter(p => p.module_level === 'Advanced').length;
 
         setBeginnerProgress((beginnerCount / 4) * 100);
         setIntermediateProgress((intermediateCount / 4) * 100);
         setAdvancedProgress((advancedCount / 4) * 100);
 
-        const recentActivities = progressData.slice(0, 5).map(item => ({
+        const recentActivities = modulesData.slice(0, 5).map(item => ({
           type: 'module',
           name: item.module_name,
           date: formatDate(item.completed_at),
-          points: item.points,
+          points: item.points_earned,
         }));
         setRecentActivity(recentActivities);
       }
 
-      const { data: activityData } = await supabase
-        .from('daily_activity')
+      const { data: streaksData } = await supabase
+        .from('daily_streaks')
         .select('activity_date')
-        .eq('user_id', 'default_user')
+        .eq('user_id', user.id)
         .order('activity_date', { ascending: false });
 
-      if (activityData && activityData.length > 0) {
-        const streak = calculateStreak(activityData.map(a => a.activity_date));
+      if (streaksData && streaksData.length > 0) {
+        const streak = calculateStreak(streaksData.map(a => a.activity_date));
         setCurrentStreak(streak);
       }
     } catch (error) {
