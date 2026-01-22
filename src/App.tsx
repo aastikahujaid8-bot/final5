@@ -55,38 +55,7 @@ function App() {
       return <SignupPage onSwitchToLogin={() => setAuthMode('login')} />;
     }
   }
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* ... existing logic ... */}
-      </main>
-
-      {selectedLab && (
-        <VulnerableStore
-          vulnerabilityType={selectedLab}
-          onClose={handleCloseStore}
-        />
-      )}
-
-      {selectedTool && (
-        <ToolPage
-          toolId={selectedTool}
-          onClose={handleCloseToolPage}
-        />
-      )}
-
-      {showVoiceGuide && (
-        <VoiceGuide onClose={() => setShowVoiceGuide(false)} />
-      )}
-
-      {/* --- ADD THE CODE HERE --- */}
-      <div className="fixed bottom-2 right-2 text-[10px] text-gray-400 font-medium z-50 pointer-events-none">
-        made by aastik
-      </div>
-    </div>
-  );
+ 
   
 
   return (
@@ -126,14 +95,12 @@ function App() {
       {showVoiceGuide && (
         <VoiceGuide onClose={() => setShowVoiceGuide(false)} />
       )}
-      {/* Credit text in the bottom-right corner */}
-<div className="fixed bottom-2 right-2 text-[10px] text-gray-400 font-medium z-50 pointer-events-none">
-  made by aastik
-</div>
+     
     </div>
   );
 }
 
 export default App;
+
 
 
