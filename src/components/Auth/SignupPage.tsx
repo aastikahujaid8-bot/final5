@@ -177,6 +177,10 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
           </div>
         </div>
       </div>
+
+      <div className="fixed bottom-4 right-4 text-xs text-gray-500 opacity-60">
+        <p>Made by Aastik Ahuja BCACyber</p>
+      </div>
     </div>
   );
 }

@@ -59,7 +59,7 @@ function App() {
   
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 relative">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
@@ -95,7 +95,10 @@ function App() {
       {showVoiceGuide && (
         <VoiceGuide onClose={() => setShowVoiceGuide(false)} />
       )}
-     
+
+      <div className="fixed bottom-4 right-4 text-xs text-gray-500 opacity-60 hover:opacity-100 transition-opacity">
+        <p>Made by Aastik Ahuja BCACyber</p>
+      </div>
     </div>
   );
 }
