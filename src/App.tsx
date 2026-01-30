@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/Auth/LoginPage';
 import { SignupPage } from './components/Auth/SignupPage';
+import { ForgotPasswordPage } from './components/Auth/ForgotPasswordPage';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
 import { VulnerabilityLabs } from './components/VulnerabilityLabs';
@@ -15,7 +16,7 @@ import { VoiceGuide } from './components/VoiceGuide';
 
 function App() {
   const { user, loading } = useAuth();
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot-password'>('login');
   const [activeTab, setActiveTab] = useState('labs');
   const [selectedLab, setSelectedLab] = useState<string | null>(null);
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
@@ -50,9 +51,16 @@ function App() {
 
   if (!user) {
     if (authMode === 'login') {
-      return <LoginPage onSwitchToSignup={() => setAuthMode('signup')} />;
-    } else {
+      return (
+        <LoginPage
+          onSwitchToSignup={() => setAuthMode('signup')}
+          onSwitchToForgotPassword={() => setAuthMode('forgot-password')}
+        />
+      );
+    } else if (authMode === 'signup') {
       return <SignupPage onSwitchToLogin={() => setAuthMode('login')} />;
+    } else {
+      return <ForgotPasswordPage onBack={() => setAuthMode('login')} />;
     }
   }
  
